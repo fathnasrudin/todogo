@@ -17,21 +17,22 @@ type Task struct {
 
 var tasks []Task
 
+func GetTasksHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	err := json.NewEncoder(w).Encode(tasks)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func main() {
+	// add initial tasks
+	tasks = append(tasks, Task{Title: "Implement Get tasks"}, Task{Title: "Implement Create a task"})
 
-	// add tasks
-	tasks = append(tasks, Task{Title: "Implement Get tasks"},  Task{Title: "Implement Create a task"}, )
-
-	http.HandleFunc("GET /api/tasks", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		err := json.NewEncoder(w).Encode(tasks)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
+	http.HandleFunc("GET /api/tasks", GetTasksHandler)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
