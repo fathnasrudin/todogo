@@ -11,18 +11,22 @@ type ResponseMessage struct {
 	Status  int    `json:"status"`
 }
 
+type Task struct {
+	Title string
+}
+
+var tasks []Task
+
 func main() {
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// add tasks
+	tasks = append(tasks, Task{Title: "Implement Get tasks"},  Task{Title: "Implement Create a task"}, )
+
+	http.HandleFunc("GET /api/tasks", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		resBody := ResponseMessage{
-			Message: "Success send first body",
-			Status:  http.StatusOK,
-		}
-
-		err := json.NewEncoder(w).Encode(resBody)
+		err := json.NewEncoder(w).Encode(tasks)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
