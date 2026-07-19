@@ -12,7 +12,7 @@ type ResponseMessage struct {
 }
 
 type Task struct {
-	Title string
+	Title string `json:"title"`
 }
 
 type CreateTaskInput struct {
