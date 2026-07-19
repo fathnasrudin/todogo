@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type ResponseMessage struct {
@@ -13,6 +15,7 @@ type ResponseMessage struct {
 
 type Task struct {
 	Title string `json:"title"`
+	ID string `json:"id"`
 }
 
 type CreateTaskInput struct {
@@ -21,6 +24,18 @@ type CreateTaskInput struct {
 
 type CreateTaskResponse struct {
 	Message string `json:"message"`
+}
+
+func NewTask(t CreateTaskInput) Task {
+	IDByte, err := uuid.NewV7(); 
+	
+	if err != nil {
+		log.Fatalln("failed to generate ID", err)
+	}
+	return Task{
+		Title: t.Title,
+		ID: IDByte.String(),
+	}
 }
 
 var tasks []Task
@@ -46,7 +61,7 @@ func createTasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks = append(tasks, Task(taskInput))
+	tasks = append(tasks, NewTask(taskInput))
 
 	if err := json.NewEncoder(w).Encode(CreateTaskResponse{Message: "Success create task item"}); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
@@ -56,7 +71,9 @@ func createTasksHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// add initial tasks
-	tasks = append(tasks, Task{Title: "Implement Get tasks"}, Task{Title: "Implement Create a task"})
+	tasks = append(tasks, 
+		NewTask(CreateTaskInput{Title: "Implement Create task"}),
+		NewTask(CreateTaskInput{Title: "Implement Get tasks"}),)
 
 	http.HandleFunc("GET /api/tasks", GetTasksHandler)
 	http.HandleFunc("POST /api/tasks", createTasksHandler)
