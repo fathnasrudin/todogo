@@ -15,17 +15,25 @@ type Task struct {
 
 var Tasks []Task
 
-func NewTask(t CreateTaskInput) Task {
-	IDByte, err := uuid.NewV7()
+// interface
 
-	if err != nil {
-		log.Fatalln("failed to generate ID", err)
-	}
-	return Task{
-		Title: t.Title,
-		ID:    IDByte.String(),
-	}
+type ITaskService interface {
+	List() ([]Task, error)
+	Create(data CreateTaskInput) error 
+	Update(taskId string, tData UpdateTaskInput) error 
+	Delete(taskId string) error
 }
+
+
+func NewTaskService(r *TodoRepository) *TaskService {
+	return &TaskService{repo: r}
+}
+
+
+type TaskService struct {
+	repo *TodoRepository
+}
+
 
 func findTask(taskId string) (*Task, error) {
 	var foundTask *Task
@@ -45,7 +53,22 @@ func findTask(taskId string) (*Task, error) {
 	return foundTask, nil
 }
 
-func deleteTask(taskId string) error {
+func (s *TaskService) Create(t CreateTaskInput) error {
+	IDByte, err := uuid.NewV7()
+
+	if err != nil {
+		log.Fatalln("failed to generate ID", err)
+	}
+	newTask := Task{
+		Title: t.Title,
+		ID:    IDByte.String(),
+	}
+
+	if err := s.repo.Create(newTask); err != nil {return err}
+	return nil
+}
+
+func (s *TaskService) Delete(taskId string) error {
 	// find task
 	task, err := findTask(taskId)
 	if err != nil {
@@ -63,7 +86,7 @@ func deleteTask(taskId string) error {
 	return nil
 }
 
-func updateTask(taskId string, tData UpdateTaskInput) error {
+func (s *TaskService) Update(taskId string, tData UpdateTaskInput) error {
 	var foundTask *Task
 
 	// find task based on id
@@ -86,6 +109,10 @@ func updateTask(taskId string, tData UpdateTaskInput) error {
 	return nil
 }
 
-func getTasks() ([]Task, error) {
-	return Tasks, nil
+func (s *TaskService) List() ([]Task, error) {
+	tasks, err := s.repo.List()
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
