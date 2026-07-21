@@ -59,7 +59,13 @@ func getTasksHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	err := json.NewEncoder(w).Encode(Tasks)
+	// service
+	tasks, tasksErr := getTasks()
+	if tasksErr != nil {
+		http.Error(w, tasksErr.Error(), http.StatusInternalServerError)
+	}
+
+	err := json.NewEncoder(w).Encode(tasks)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

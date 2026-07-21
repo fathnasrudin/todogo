@@ -85,3 +85,7 @@ func updateTask(taskId string, tData UpdateTaskInput) error {
 	// no error mean success update
 	return nil
 }
+
+func getTasks() ([]Task, error) {
+	return Tasks, nil
+}
