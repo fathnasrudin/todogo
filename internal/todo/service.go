@@ -3,7 +3,6 @@ package todo
 import (
 	"fmt"
 	"log"
-	"slices"
 
 	"github.com/google/uuid"
 )
@@ -25,14 +24,15 @@ type ITaskService interface {
 }
 
 
-func NewTaskService(r *TodoRepository) *TaskService {
+func NewTaskService(r TodoRepository) *TaskService {
 	return &TaskService{repo: r}
 }
 
 
 type TaskService struct {
-	repo *TodoRepository
+	repo TodoRepository
 }
+
 
 
 func findTask(taskId string) (*Task, error) {
@@ -69,43 +69,15 @@ func (s *TaskService) Create(t CreateTaskInput) error {
 }
 
 func (s *TaskService) Delete(taskId string) error {
-	// find task
-	task, err := findTask(taskId)
+	err := s.repo.Delete(taskId);
 	if err != nil {
 		return err
-	}
-
-	// delete task
-	for i := range Tasks {
-		if Tasks[i].ID == task.ID {
-			Tasks = slices.Delete(Tasks, i, i+1)
-			break
-		}
-	}
-
-	return nil
+	}	
+	return nil;
 }
 
 func (s *TaskService) Update(taskId string, tData UpdateTaskInput) error {
-	var foundTask *Task
-
-	// find task based on id
-	for i := range Tasks {
-		if Tasks[i].ID == taskId {
-			foundTask = &Tasks[i]
-			break
-		}
-	}
-
-	if foundTask == nil {
-		return fmt.Errorf("Task with ID %q not found", taskId)
-	}
-
-	// task found
-	// update task
-	foundTask.Title = tData.Title
-
-	// no error mean success update
+	if err := s.repo.Update(taskId, Task{Title: tData.Title}); err != nil { return err}
 	return nil
 }
 
