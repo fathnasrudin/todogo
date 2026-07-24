@@ -3,7 +3,6 @@ package todo
 import (
 	"fmt"
 	"log"
-	"slices"
 
 	"github.com/google/uuid"
 )
@@ -15,17 +14,26 @@ type Task struct {
 
 var Tasks []Task
 
-func NewTask(t CreateTaskInput) Task {
-	IDByte, err := uuid.NewV7()
+// interface
 
-	if err != nil {
-		log.Fatalln("failed to generate ID", err)
-	}
-	return Task{
-		Title: t.Title,
-		ID:    IDByte.String(),
-	}
+type ITaskService interface {
+	List() ([]Task, error)
+	Create(data CreateTaskInput) error 
+	Update(taskId string, tData UpdateTaskInput) error 
+	Delete(taskId string) error
 }
+
+
+func NewTaskService(r TodoRepository) *TaskService {
+	return &TaskService{repo: r}
+}
+
+
+type TaskService struct {
+	repo TodoRepository
+}
+
+
 
 func findTask(taskId string) (*Task, error) {
 	var foundTask *Task
@@ -45,43 +53,38 @@ func findTask(taskId string) (*Task, error) {
 	return foundTask, nil
 }
 
-func deleteTask(taskId string) error {
-	// find task
-	task, err := findTask(taskId)
+func (s *TaskService) Create(t CreateTaskInput) error {
+	IDByte, err := uuid.NewV7()
+
 	if err != nil {
-		return err
+		log.Fatalln("failed to generate ID", err)
+	}
+	newTask := Task{
+		Title: t.Title,
+		ID:    IDByte.String(),
 	}
 
-	// delete task
-	for i := range Tasks {
-		if Tasks[i].ID == task.ID {
-			Tasks = slices.Delete(Tasks, i, i+1)
-			break
-		}
-	}
-
+	if err := s.repo.Create(newTask); err != nil {return err}
 	return nil
 }
 
-func updateTask(taskId string, tData UpdateTaskInput) error {
-	var foundTask *Task
+func (s *TaskService) Delete(taskId string) error {
+	err := s.repo.Delete(taskId);
+	if err != nil {
+		return err
+	}	
+	return nil;
+}
 
-	// find task based on id
-	for i := range Tasks {
-		if Tasks[i].ID == taskId {
-			foundTask = &Tasks[i]
-			break
-		}
-	}
-
-	if foundTask == nil {
-		return fmt.Errorf("Task with ID %q not found", taskId)
-	}
-
-	// task found
-	// update task
-	foundTask.Title = tData.Title
-
-	// no error mean success update
+func (s *TaskService) Update(taskId string, tData UpdateTaskInput) error {
+	if err := s.repo.Update(taskId, Task{Title: tData.Title}); err != nil { return err}
 	return nil
+}
+
+func (s *TaskService) List() ([]Task, error) {
+	tasks, err := s.repo.List()
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }

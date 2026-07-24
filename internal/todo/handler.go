@@ -6,7 +6,25 @@ import (
 	"net/http"
 )
 
-func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
+type ITodoHandler interface {
+	Create(w http.ResponseWriter, r *http.Request)
+	Update(w http.ResponseWriter, r *http.Request)
+	Delete(w http.ResponseWriter, r *http.Request)
+	List(w http.ResponseWriter, r *http.Request)
+}
+
+type TodoHandler struct {
+	service TaskService
+}
+
+func NewTodoHandler(service TaskService) *TodoHandler{
+	return &TodoHandler{
+		service: service,
+	}
+}
+
+
+func (h *TodoHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -24,7 +42,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update input
-	if err := updateTask(id, updateTaskInput); err != nil {
+	if err := h.service.Update(id, updateTaskInput); err != nil {
 		log.Print(err)
 
 		w.WriteHeader(http.StatusNotFound)
@@ -36,7 +54,7 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(UpdateTaskResponse{Message: "Success update task"})
 }
 
-func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler)  Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	// write headers
@@ -45,7 +63,7 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	// should validate id
 
 	// delete task
-	if err := deleteTask(id); err != nil {
+	if err := h.service.Delete(id); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(BadResponse{Message: err.Error()})
 		return
@@ -55,20 +73,25 @@ func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(UpdateTaskResponse{Message: "Success delete task: " + id})
 }
 
-func getTasksHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler) List(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	err := json.NewEncoder(w).Encode(Tasks)
+	// service
+	tasks, tasksErr := h.service.List()
+	if tasksErr != nil {
+		http.Error(w, tasksErr.Error(), http.StatusInternalServerError)
+	}
+
+	err := json.NewEncoder(w).Encode(tasks)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func createTasksHandler(w http.ResponseWriter, r *http.Request) {
+func (h *TodoHandler)  Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	var taskInput CreateTaskInput
 	if err := json.NewDecoder(r.Body).Decode(&taskInput); err != nil {
@@ -76,8 +99,13 @@ func createTasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Tasks = append(Tasks, NewTask(taskInput))
+	// Call service
+	if err := h.service.Create(taskInput); err != nil {
+		http.Error(w, "Failed to Create Task" + err.Error(), http.StatusBadRequest)
+		return
+	}
 
+	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(CreateTaskResponse{Message: "Success create task item"}); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
