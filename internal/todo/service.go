@@ -10,6 +10,7 @@ import (
 type Task struct {
 	Title string `json:"title"`
 	ID    string `json:"id"`
+	IsDone bool `json:"is_done"`
 }
 
 var Tasks []Task
@@ -77,7 +78,7 @@ func (s *TaskService) Delete(taskId string) error {
 }
 
 func (s *TaskService) Update(taskId string, tData UpdateTaskInput) error {
-	if err := s.repo.Update(taskId, Task{Title: tData.Title}); err != nil { return err}
+	if err := s.repo.Update(taskId, UpdateTaskInput{Title: tData.Title, IsDone: tData.IsDone}); err != nil { return err}
 	return nil
 }
 

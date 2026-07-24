@@ -10,7 +10,8 @@ type BadResponse struct {
 }
 
 type UpdateTaskInput struct {
-	Title string `json:"title"`
+	Title *string `json:"title"`
+	IsDone *bool `json:"is_done"`
 }
 
 type UpdateTaskResponse struct {

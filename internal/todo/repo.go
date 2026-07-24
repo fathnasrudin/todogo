@@ -9,7 +9,7 @@ import (
 type TodoRepository interface {
 	List() ([]Task, error)
 	Create(Task) error
-	Update(id string, data Task) error
+	Update(id string, data UpdateTaskInput) error
 	Delete(id string ) error
 }
 
@@ -29,7 +29,7 @@ func (r *PostgresTodoRepository) List() ([]Task, error) {
 
 	// call 
 	rows, queryErr := r.db.Query(`
-	SELECT *
+	SELECT id, title, is_done
 	FROM todos
 	`);
 
@@ -41,7 +41,7 @@ func (r *PostgresTodoRepository) List() ([]Task, error) {
 
 	// convert db row into Task struct in tasks slice
 	for rows.Next() {
-		err := rows.Scan(&task.ID, &task.Title)
+		err := rows.Scan(&task.ID, &task.Title, &task.IsDone)
 		if err != nil {
 			log.Fatal(err);
 		}
@@ -64,13 +64,16 @@ func (r *PostgresTodoRepository)  Create( task Task) error {
 	return nil
 }
 
-func (r *PostgresTodoRepository)  Update(id string, task Task) error {
+func (r *PostgresTodoRepository)  Update(id string, task UpdateTaskInput) error {
 	query := `
 		UPDATE todos
-		SET title = $1
-		WHERE id = $2;
+		SET 
+			title = COALESCE($1, title),
+			is_done = COALESCE($2, is_done)
+		WHERE 
+			id = $3;
 	`;
-	_, err := r.db.Exec(query, task.Title, id)
+	_, err := r.db.Exec(query, task.Title, task.IsDone, id)
 	if err != nil {return err}
 
 	return nil
