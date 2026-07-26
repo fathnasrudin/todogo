@@ -1,10 +1,15 @@
 package user
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+)
 
 type UserRepo interface {
 	List() ([]GetUserResponse, error)
 	Create(u User) (error)
+	Update(id string, u UpdateUserInput) (error)
+	Delete(id string) (error)
 }
 
 type PostgresUserRepo struct {
@@ -51,4 +56,37 @@ func (r *PostgresUserRepo) Create(u User) ( error) {
 	if err != nil {return err}
 	
 	return nil
+}
+
+func (r *PostgresUserRepo) Update(id string, u UpdateUserInput) ( error) {
+	query := `
+	UPDATE users
+	SET 
+		email = COALESCE($1, email),
+		password = COALESCE($2, password)
+	WHERE id = $3;
+	`
+	result, err := r.db.Exec(query, u.Email, u.Password, id);
+
+	rowsAffected, err := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("Task not found")
+	}
+
+	return err
+}
+
+func (r *PostgresUserRepo) Delete(id string) ( error) {
+	query := `
+	DELETE FROM users
+	WHERE id = $1;
+	`
+	result, err := r.db.Exec(query, id);
+
+	rowsAffected, err := result.RowsAffected()
+	if rowsAffected == 0 {
+		return errors.New("Task not found")
+	}
+
+	return err
 }

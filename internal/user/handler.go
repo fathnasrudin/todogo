@@ -25,6 +25,8 @@ func NewUserHandler(s *UserService) *UserHandler {
 func (h UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/users", h.List)
 	mux.HandleFunc("POST /api/users", h.Create)
+	mux.HandleFunc("PATCH /api/users/{id}", h.Update)
+	mux.HandleFunc("DELETE /api/users/{id}", h.Delete)
 }
 
 func (h UserHandler) List(w http.ResponseWriter, r *http.Request){
@@ -65,3 +67,31 @@ func (h UserHandler) Create(w http.ResponseWriter, r *http.Request){
 	}
 }
 
+
+func (h UserHandler) Update(w http.ResponseWriter, r *http.Request) {
+	var updateUserInput UpdateUserInput
+	userId := r.PathValue("id");
+	
+	err := json.NewDecoder(r.Body).Decode(&updateUserInput)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	
+	if err := h.service.Update(userId, updateUserInput); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("id");
+
+	err := h.service.Delete(userId);
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.WriteHeader(http.StatusNoContent)
+}

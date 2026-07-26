@@ -8,6 +8,8 @@ import (
 type IUserService interface {
 	List() ([]GetUserResponse, error)
 	Create(d CreateUserInput) (error)
+	Update(id string, d UpdateUserInput) (error)
+	Delete(id string) (error)
 }
 
 type UserService struct {
@@ -56,4 +58,21 @@ func (s UserService) Create(uData CreateUserInput) (error) {
 
 	if err := s.repo.Create(user); err != nil {return err}
 	return nil
+}
+
+func (s UserService) Update(id string, d UpdateUserInput) (error) {
+
+	if (d.Password != nil) {
+		hashed, err := passwordhashing.HashPassword(*d.Password)
+		if err != nil {return err}
+		d.Password = &hashed
+	}
+
+	err := s.repo.Update(id, d)
+	return err
+}
+
+
+func (s UserService) Delete(id string) (error) {
+	return s.repo.Delete(id);
 }
