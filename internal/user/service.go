@@ -61,6 +61,13 @@ func (s UserService) Create(uData CreateUserInput) (error) {
 }
 
 func (s UserService) Update(id string, d UpdateUserInput) (error) {
+
+	if (d.Password != nil) {
+		hashed, err := passwordhashing.HashPassword(*d.Password)
+		if err != nil {return err}
+		d.Password = &hashed
+	}
+
 	err := s.repo.Update(id, d)
 	return err
 }
