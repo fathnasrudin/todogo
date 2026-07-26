@@ -4,6 +4,7 @@ import "database/sql"
 
 type UserRepo interface {
 	List() ([]GetUserResponse, error)
+	Create(u User) (error)
 }
 
 type PostgresUserRepo struct {
@@ -38,4 +39,16 @@ func (r *PostgresUserRepo) List() ([]GetUserResponse, error) {
 	}
 	
 	return users, nil
+}
+
+
+func (r *PostgresUserRepo) Create(u User) ( error) {
+	query := `
+	INSERT INTO users (id, email, password)
+	VALUES ($1, $2, $3);
+	`
+	_, err := r.db.Exec(query, u.ID, u.Email, u.Password);
+	if err != nil {return err}
+	
+	return nil
 }

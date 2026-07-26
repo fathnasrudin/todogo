@@ -23,7 +23,8 @@ func NewUserHandler(s *UserService) *UserHandler {
 }
 
 func (h UserHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/users", h.List)
+	mux.HandleFunc("GET /api/users", h.List)
+	mux.HandleFunc("POST /api/users", h.Create)
 }
 
 func (h UserHandler) List(w http.ResponseWriter, r *http.Request){
@@ -37,6 +38,28 @@ func (h UserHandler) List(w http.ResponseWriter, r *http.Request){
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	if err := json.NewEncoder(w).Encode(users); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return;
+	}
+}
+
+
+func (h UserHandler) Create(w http.ResponseWriter, r *http.Request){
+	var uData CreateUserInput
+
+	if err := json.NewDecoder(r.Body).Decode(&uData); err != nil {
+		http.Error(w, "Failed to decode body: " + err.Error(), http.StatusBadRequest)
+	}
+
+	err := h.service.Create(uData);
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return;
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	if err := json.NewEncoder(w).Encode(CreateUserResponse{Message: "Success create user"}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return;
 	}
