@@ -23,7 +23,7 @@ func main() {
 
 	repo := todo.NewTodoRepository(db)
 	service := todo.NewTaskService(repo)
-	handler := todo.NewTodoHandler(*service)
+	handler := todo.NewTodoHandler(*service, &validator)
 	mux.HandleFunc("GET /api/tasks", handler.List)
 	mux.HandleFunc("POST /api/tasks", handler.Create)
 	mux.HandleFunc("PUT /api/tasks/{id}", handler.Update)

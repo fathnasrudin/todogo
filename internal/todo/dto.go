@@ -10,8 +10,8 @@ type BadResponse struct {
 }
 
 type UpdateTaskInput struct {
-	Title *string `json:"title"`
-	IsDone *bool `json:"is_done"`
+	Title *string `json:"title" validate:"omitempty,min=1"`
+	IsDone *bool `json:"is_done" validate:"omitempty"`
 }
 
 type UpdateTaskResponse struct {
@@ -19,7 +19,7 @@ type UpdateTaskResponse struct {
 }
 
 type CreateTaskInput struct {
-	Title string `json:"title"`
+	Title string `json:"title" validate:"required,min=1"`
 }
 
 type CreateTaskResponse struct {
