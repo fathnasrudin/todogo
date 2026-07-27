@@ -2,8 +2,12 @@ package todo
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+
+	apiresponse "github.com/fathnasrudin/todogo/internal/common/apiResponse"
+	pgValidator "github.com/go-playground/validator/v10"
 )
 
 type ITodoHandler interface {
@@ -15,11 +19,13 @@ type ITodoHandler interface {
 
 type TodoHandler struct {
 	service TaskService
+	validator *pgValidator.Validate
 }
 
-func NewTodoHandler(service TaskService) *TodoHandler{
+func NewTodoHandler(service TaskService, validator *pgValidator.Validate) *TodoHandler{
 	return &TodoHandler{
 		service: service,
+		validator: validator,
 	}
 }
 
@@ -28,17 +34,37 @@ func (h *TodoHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	w.Header().Set("Content-Type", "application/json")
 
-	// should validate id
-
 	// decode body input
 	var updateTaskInput UpdateTaskInput
-	err := json.NewDecoder(r.Body).Decode(&updateTaskInput)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&updateTaskInput); err != nil {
 		log.Print(err)
 
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(UpdateTaskResponse{Message: err.Error()})
 		return
+	}
+
+	// should validate body
+	// validate input
+	if err := h.validator.Struct(updateTaskInput); err != nil {
+		report := make(map[string]string);
+
+		if validationErrors, ok := err.(pgValidator.ValidationErrors); ok == true {
+			for _, e := range validationErrors {
+				report[e.Field()] = fmt.Sprint(e.Error())}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(apiresponse.BadResponse{
+				Code: "Validation_Error",
+				Message: "Validation Error",
+				Fields: report,
+			})
+			return;
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return;
+		}
 	}
 
 	// update input
@@ -97,6 +123,28 @@ func (h *TodoHandler)  Create(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&taskInput); err != nil {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
 		return
+	}
+
+	// validate input
+	if err := h.validator.Struct(taskInput); err != nil {
+		report := make(map[string]string);
+
+		if validationErrors, ok := err.(pgValidator.ValidationErrors); ok == true {
+			for _, e := range validationErrors {
+				report[e.Field()] = fmt.Sprint(e.Error())}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(apiresponse.BadResponse{
+				Code: "Validation_Error",
+				Message: "Validation Error",
+				Fields: report,
+			})
+			return;
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return;
+		}
 	}
 
 	// Call service

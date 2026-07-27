@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/fathnasrudin/todogo/internal/common/database"
+	"github.com/fathnasrudin/todogo/internal/common/validator"
 	"github.com/fathnasrudin/todogo/internal/todo"
 	"github.com/fathnasrudin/todogo/internal/user"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -18,10 +19,11 @@ func main() {
 	defer db.Close()
 
 	mux := http.NewServeMux();
+	validator := validator.NewValidator()
 
 	repo := todo.NewTodoRepository(db)
 	service := todo.NewTaskService(repo)
-	handler := todo.NewTodoHandler(*service)
+	handler := todo.NewTodoHandler(*service, &validator)
 	mux.HandleFunc("GET /api/tasks", handler.List)
 	mux.HandleFunc("POST /api/tasks", handler.Create)
 	mux.HandleFunc("PUT /api/tasks/{id}", handler.Update)
@@ -30,7 +32,7 @@ func main() {
 	// user
 	userRepo := user.NewUserRepo(db)
 	userService := user.NewUserService(userRepo)
-	userHandler := user.NewUserHandler(userService)
+	userHandler := user.NewUserHandler(userService, &validator)
 	userHandler.RegisterRoutes(mux)
 
 	err := http.ListenAndServe(":8080", mux)
