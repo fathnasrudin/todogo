@@ -93,12 +93,33 @@ func (h UserHandler) Create(w http.ResponseWriter, r *http.Request){
 
 
 func (h UserHandler) Update(w http.ResponseWriter, r *http.Request) {
-	var updateUserInput UpdateUserInput
+	var updateUserInput UpdateUserInput			
 	userId := r.PathValue("id");
 	
 	err := json.NewDecoder(r.Body).Decode(&updateUserInput)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	if err := h.validator.Struct(updateUserInput); err != nil {
+		report := make(map[string]string);
+
+		if validationErrors, ok := err.(validator.ValidationErrors); ok == true {
+			for _, e := range validationErrors {
+				report[e.Field()] = fmt.Sprint(e.Error())}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(BadResponse{
+				Code: "Validation_Error",
+				Message: "Validation Error",
+				Fields: report,
+			})
+			return;
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return;
+		}
 	}
 	
 	if err := h.service.Update(userId, updateUserInput); err != nil {

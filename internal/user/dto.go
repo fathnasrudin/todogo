@@ -5,8 +5,8 @@ type CreateUserResponse struct {
 }
 
 type UpdateUserInput struct {
-	Email *string `json:"email"`
-	Password *string `json:"password"`
+	Email *string `json:"email" validate:"omitempty,email"`
+	Password *string `json:"password" validate:"omitempty,min=8,max=32"`
 }
 
 type BadResponse struct {
